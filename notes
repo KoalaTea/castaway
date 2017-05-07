@@ -1,1 +1,4 @@
 castaway single packet gets a response.
+
+unicast-response bit is the first bit in the last two bytes
+the first bit in the class field of a MDNS query

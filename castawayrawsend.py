@@ -10,27 +10,13 @@ packetCount = 0
 
 def dns_spoof(pkt):
     redirect_to = '192.168.1.104'
-    for i in range(0,16):
-        #data = "00 00 00 00 00 01 00 00 00 00 00 00 0b 5f 67 6f 6f 67 6c 65 63 61 73 74 04 5f 74 63 70 05 6c 6f 63 61 6c 00 00 0c 00 01"
-        data = "00 00 00 00 00 01 00 00 00 00 00 00 0b 5f 67 6f 6f 67 6c 65 63 61 73 74 04 5f 74 63 70 05 6c 6f 63 61 6c 00 00 0c"
-        bindata = int('0001', 16)
+    data = "00 00 00 00 00 01 00 00 00 00 00 00 0b 5f 67 6f 6f 67 6c 65 63 61 73 74 04 5f 74 63 70 05 6c 6f 63 61 6c 00 00 0c 80 01"
+    data_list = data.split()
+    data_hex = ''.join(data_list).decode('hex')
+    spoofed_pkt = IP(src='192.168.1.144', dst=redirect_to)/UDP(dport='mdns', sport='mdns')/Raw(load=data_hex)
 
-        print bindata
-        bindata = bindata | 1 << i
-        #n = int(bin(bindata), 2)
-        #binundata = binascii.unhexlify('%x' % n)
-        #binundata = binascii.unhexlify('%x' % bindata)
-        binundata = hex(bindata)[2:].zfill(4)
-
-        print binundata
-        data_list = data.split()
-        data_list.append(binundata)
-        data_hex = ''.join(data_list).decode('hex')
-        spoofed_pkt = IP(src='192.168.1.144', dst=redirect_to)/UDP(dport='mdns', sport='mdns')/Raw(load=data_hex)
-
-        #flip bit here
-        send(spoofed_pkt)
-        print 'Sent:', spoofed_pkt.summary()
+    send(spoofed_pkt)
+    print 'Sent:', spoofed_pkt.summary()
 
 ## Define our Custom Action function
 def customAction(packet):
