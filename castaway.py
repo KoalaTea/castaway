@@ -7,9 +7,11 @@ from time import sleep
 import requests
 import xml.etree.ElementTree as ET
 import binascii
+import sys
+
 ## Create a Packet Count var
 packetCount = 0
-redirect_to = '192.168.1.104'
+redirect_to = '127.0.0.1'
 
 def get_info(ip):
     url = 'http://' + ip + ':8008/ssdp/device-desc.xml'
@@ -108,9 +110,13 @@ def customAction(packet):
     #print packet.show()
     if DNSQR in packet:
         if packet[DNSQR].qname == '_googlecast._tcp.local.':
-            if packet[IP].dst != '192.168.1.104':
+            if packet[IP].dst != redirect_to:
                 print 'chromecast is being looked for'
                 spoof_response(packet)
                 return "Packet #%s: %s ==> %s" % (packetCount, packet[0][1].src, packet[0][1].dst)
 ## Setup sniff, filtering for IP traffic
+if len(sys.argv) < 2:
+    print("castaway.py <ip address> <interface>")
+redirect_to = sys.argv[1]
+interface = sys.argv[2]
 sniff(filter="ip", prn=customAction)
