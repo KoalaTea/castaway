@@ -114,9 +114,16 @@ def customAction(packet):
                 print 'chromecast is being looked for'
                 spoof_response(packet)
                 return "Packet #%s: %s ==> %s" % (packetCount, packet[0][1].src, packet[0][1].dst)
+
 ## Setup sniff, filtering for IP traffic
-if len(sys.argv) < 2:
-    print("castaway.py <ip address> <interface>")
+if len(sys.argv) < 1:
+    print("castaway.py <ip address> <interface (Optional default all)>")
+    exit(0)
 redirect_to = sys.argv[1]
-interface = sys.argv[2]
-sniff(filter="ip", prn=customAction)
+interface = None
+if len(sys.argv >= 2):
+    interface = sys.argv[2]
+if interface:
+    sniff(filter="ip", prn=customAction, iface=interface)
+else:
+    sniff(filter="ip", prn=customAction)
