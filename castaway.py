@@ -117,7 +117,7 @@ def customAction(packet):
 
 ## Setup sniff, filtering for IP traffic
 if len(sys.argv) < 2:
-    print("castaway.py <ip address> <interface (Optional default all)>")
+    print("castaway.py <ip address of chromecast> <interface (Optional default all)>")
     exit(0)
 redirect_to = sys.argv[1]
 interface = None
