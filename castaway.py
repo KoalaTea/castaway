@@ -33,7 +33,8 @@ def spoof_response(pkt):
     uuid = uuid_fn[0]
     fn = uuid_fn[1]
     fn_len = len(fn)/2
-    a = redirect_to.split('.')
+    to = '192.168.163.88'
+    a = to.split('.')
     hex_ip = '{:02X}{:02X}{:02X}{:02X}'.format(*map(int, a))
     uuid_nodash = ''.join(uuid.split('-'))
 
@@ -91,6 +92,8 @@ def spoof_response(pkt):
 
     ansextra = ansextratxt + ansextrasrv + ansextraa                        # build the additional records
     ans += ansextra                                                         # build the answer query adding additionals to the answer
+
+    print ('DEBUG: ' + hex_ip)
 
     # turn mDNS answer into hex for the Raw portion of the payload
     data_list = ans.split()
